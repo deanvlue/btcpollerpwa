@@ -38,12 +38,12 @@ func doSomething(s string) {
 }
 
 func polling() {
-	//for {
-	//time.Sleep(1 * time.Minute)
-	//go doSomething(" Bay number one")
-	getSymbolTrack("btc_mxn")
-	getSymbolTrack("ltc_mxn")
-	//}
+	for {
+		time.Sleep(10 * time.Minute)
+		//go doSomething(" Bay number one")
+		getSymbolTrack("btc_mxn")
+		getSymbolTrack("ltc_mxn")
+	}
 }
 
 func startPolling2() {
@@ -77,7 +77,7 @@ func getSymbolTrack(symbol string) {
 
 func saveData(data *ResponseBitso, symbol string) {
 	db, err := sql.Open("sqlite3", "./db/cryptohistory")
-	insertPayload := "INSERT INTO tahistory(source,symbol,high,last_price,created_at, book, volume, vwap,low,ask, bid,change24) values (?,?,?,?,?,?,?,?,?,?,?)"
+	insertPayload := "INSERT INTO tahistory(id,source,symbol,high,last_price,created_at, book, volume, vwap,low,ask, bid,change24) values (null,?,?,?,?,?,?,?,?,?,?,?,?)"
 	stmt, err := db.Prepare(insertPayload)
 	checkErr(err)
 
@@ -85,21 +85,19 @@ func saveData(data *ResponseBitso, symbol string) {
 	checkErr(err)
 	last, err := strconv.ParseFloat(data.Payload.Last, 64)
 	checkErr(err)
-	book, err := strconv.ParseFloat(data.Payload.Book, 64)
-	checkErr(err)
 	volume, err := strconv.ParseFloat(data.Payload.Volume, 64)
 	checkErr(err)
 	vwap, err := strconv.ParseFloat(data.Payload.Vwap, 64)
 	checkErr(err)
-	low, err := strconv.ParseFloat(data.Payloaday.Low, 64)
+	low, err := strconv.ParseFloat(data.Payload.Low, 64)
 	checkErr(err)
 	ask, err := strconv.ParseFloat(data.Payload.Ask, 64)
 	checkErr(err)
 	bid, err := strconv.ParseFloat(data.Payload.Bid, 64)
 	checkErr(err)
-	change24, err := strconv.ParseFloat(data.Payload.Change24a, 64)
+	change24, err := strconv.ParseFloat(data.Payload.Change24, 64)
 	checkErr(err)
-	resp, err := stmt.Exec("bitso", symbol, high, last, data.Payload.CreatedAt, book, volume, vwap, low, ask, bid, change24)
+	resp, err := stmt.Exec("bitso", symbol, high, last, data.Payload.CreatedAt, data.Payload.Book, volume, vwap, low, ask, bid, change24)
 	checkErr(err)
 
 	id, err := resp.LastInsertId()
@@ -119,6 +117,13 @@ func main() {
 
 	//http.HandleFunc("/", handler)
 	//http.ListenAndServe(":8080", nil)
+
+	/* TODO:
+	1. Agregar banderas de tiempo
+	2. Separar lógica de base de datos en otro package
+	3. Separar lógica de consulta en otro package
+
+	*/
 
 	// Poll for API.
 	log.Println("Crypto HODLER ....")
