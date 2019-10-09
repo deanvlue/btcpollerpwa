@@ -1,43 +1,13 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
-	"math/rand"
 	"net/http"
-	"strconv"
 	"time"
-
-	_ "github.com/mattn/go-sqlite3"
 )
-
-// Payload Response from Biso API
-type Payload struct {
-	High      string `json:"high"`
-	Last      string `json:"last"`
-	CreatedAt string `json:"created_at"`
-	Book      string `json:"book"`
-	Volume    string `json:"volume"`
-	Vwap      string `json:"vwap"`
-	Low       string `json:"low"`
-	Ask       string `json:"ask"`
-	Bid       string `json:"bid"`
-	Change24  string `json:"change_24"`
-}
-
-// ResponseBitso Bitso response structure
-type ResponseBitso struct {
-	Success bool    `json:"success"`
-	Payload Payload `json:"payload"`
-}
-
-func doSomething(s string) {
-	log.Println("doing something", s)
-}
 
 func polling() {
 	for {
@@ -50,15 +20,24 @@ func polling() {
 	}
 }
 
-func startPolling2() {
-	for {
-		<-time.After(2 * time.Second)
-		go doSomething(" Hello from Bay 2")
-	}
-}
-
 func handler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hi, ❤️ %s", r.URL.Path[1:])
+}
+
+func handlerTracker(w http.ResponseWriter, r *http.Request) {
+	symbols, ok := r.URL.Query()["sym"]
+
+	if !ok || len(symbols[0]) < 1 {
+		log.Println("Symbol needed to get information")
+		return
+	}
+
+	symbol := symbols[0]
+	w.Header().Set("Content-Type", "application/json")
+	lastPrices := getData(symbol, 5)
+
+	json.NewEncoder(w).Encode(lastPrices)
+
 }
 
 func getSymbolTrack(symbol string) {
@@ -79,38 +58,6 @@ func getSymbolTrack(symbol string) {
 	}
 }
 
-func saveData(data *ResponseBitso, symbol string) {
-	db, err := sql.Open("sqlite3", "./db/cryptohistory")
-	insertPayload := "INSERT INTO tahistory(id,source,symbol,high,last_price,created_at, book, volume, vwap,low,ask, bid,change24) values (null,?,?,?,?,?,?,?,?,?,?,?,?)"
-	stmt, err := db.Prepare(insertPayload)
-	checkErr(err)
-
-	high, err := strconv.ParseFloat(data.Payload.High, 64)
-	checkErr(err)
-	last, err := strconv.ParseFloat(data.Payload.Last, 64)
-	checkErr(err)
-	volume, err := strconv.ParseFloat(data.Payload.Volume, 64)
-	checkErr(err)
-	vwap, err := strconv.ParseFloat(data.Payload.Vwap, 64)
-	checkErr(err)
-	low, err := strconv.ParseFloat(data.Payload.Low, 64)
-	checkErr(err)
-	ask, err := strconv.ParseFloat(data.Payload.Ask, 64)
-	checkErr(err)
-	bid, err := strconv.ParseFloat(data.Payload.Bid, 64)
-	checkErr(err)
-	change24, err := strconv.ParseFloat(data.Payload.Change24, 64)
-	checkErr(err)
-	resp, err := stmt.Exec("bitso", symbol, high, last, data.Payload.CreatedAt, data.Payload.Book, volume, vwap, low, ask, bid, change24)
-	checkErr(err)
-
-	id, err := resp.LastInsertId()
-	checkErr(err)
-
-	log.Printf("Insertado %v", id)
-	//log.Printf("Guardando lo que está en: %v ", data.Payload.Ask)
-}
-
 func checkErr(err error) {
 	if err != nil {
 		log.Fatal("Hubo un error: ", err)
@@ -118,9 +65,6 @@ func checkErr(err error) {
 }
 
 func main() {
-
-	//http.HandleFunc("/", handler)
-	//http.ListenAndServe(":8080", nil)
 
 	//intervalTime := flag.Int("i", 10, "Update Interval")
 	//flag.Parse()
@@ -136,6 +80,13 @@ func main() {
 	log.Println("Crypto HODLER ....")
 	log.Println("Contacting API.")
 	go polling()
+	//resjson, _ := json.Marshal(getData("btc_mxn", 15))
+	//fmt.Println(string(resjson))
+	http.HandleFunc("/", handler)
+	http.HandleFunc("/track/", handlerTracker)
+
+	log.Println("Server working on port 8080...")
+	http.ListenAndServe(":8080", nil)
 	log.Println("Bye.")
 	//os.Exit(0)
 }
