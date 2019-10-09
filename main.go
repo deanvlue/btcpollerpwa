@@ -3,9 +3,11 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"strconv"
 	"time"
@@ -39,10 +41,12 @@ func doSomething(s string) {
 
 func polling() {
 	for {
-		time.Sleep(10 * time.Minute)
+		//interval := int64(*i)
+		//log.Println(interval)
+		time.Sleep(2 * time.Minute)
 		//go doSomething(" Bay number one")
-		getSymbolTrack("btc_mxn")
-		getSymbolTrack("ltc_mxn")
+		go getSymbolTrack("btc_mxn")
+		go getSymbolTrack("ltc_mxn")
 	}
 }
 
@@ -118,6 +122,9 @@ func main() {
 	//http.HandleFunc("/", handler)
 	//http.ListenAndServe(":8080", nil)
 
+	//intervalTime := flag.Int("i", 10, "Update Interval")
+	//flag.Parse()
+
 	/* TODO:
 	1. Agregar banderas de tiempo
 	2. Separar lógica de base de datos en otro package
@@ -128,7 +135,7 @@ func main() {
 	// Poll for API.
 	log.Println("Crypto HODLER ....")
 	log.Println("Contacting API.")
-	polling()
+	go polling()
 	log.Println("Bye.")
 	//os.Exit(0)
 }
